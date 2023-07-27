@@ -1,0 +1,10 @@
+Column Name,Data Type
+Date,datetime64[ns]
+Open,float64
+High,float64
+Low,float64
+Close,float64
+Adj Close,float64
+Volume,float64
+Year,int64
+Price Change,float64

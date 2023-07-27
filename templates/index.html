@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI SQL Prototype</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> 
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl7/1L_dstPt3HV5HzF6Gvk/e3Ee7/uPGzA8IZ/7y/7" crossorigin="anonymous">
+    <!--Grammarly API-->
+    <script src="https://cdn.jsdelivr.net/npm/@grammarly/editor-sdk?clientId=client_NGETidJB8Z2aaF93FGM5qb"></script>
+</head>
+<body onload="updateURL('/')">
+    <center><h2>AI SQL Prototype</h2></center>
+
+    <!-- upload CSV Form -->
+    <h3>Upload CSV</h3>
+    <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="form_name" value="file_upload">
+          <input type="file" name="csv_file">
+          <input type="submit" value="Upload">
+    </form>
+    <br>
+    <!--auto clean data-->
+    <form method="POST" action="/clean_data">
+        <input type="submit" value="Auto Clean Data">
+    </form>
+
+    <br>
+    <hr>
+
+    <!-- Prompt Form -->
+    <h3>Prompt</h3>
+    <form method="POST" >
+        <input type="hidden" name="form_name" value="prompt" action="/">
+
+        <!-- radio buttons -->
+        {% if prompt_type == 'chat' %}
+        <input type="radio" id="chat" name="prompt_type" value="chat" onclick="updateTextInputVisibility()" checked> <!--id="chat_checked"-->
+        <label for="chat">Chat</label><br>
+        <input type="radio" id="query" name="prompt_type" value="query"  onclick="updateTextInputVisibility()" >
+        <label for="query">Query</label><br>
+
+        <input type="radio" id="model" name="prompt_type" value="model" onclick="updateTextInputVisibility()" >
+        <label for="model">Model</label><br><br>
+
+        {% elif prompt_type == "query" %}
+        <input type="radio" id="chat" name="prompt_type" value="chat" onclick="updateTextInputVisibility()">
+        <label for="chat">Chat</label><br>
+        <input type="radio" id="query" name="prompt_type" value="query" onclick="updateTextInputVisibility()" checked>
+        <label for="query">Query</label><br>
+
+        <input type="radio" id="model" name="prompt_type" value="model" onclick="updateTextInputVisibility()" >
+        <label for="model">Model</label><br><br>
+
+        {% elif prompt_type == "model" %}
+        <input type="radio" id="chat" name="prompt_type" value="chat" onclick="updateTextInputVisibility()">
+        <label for="chat">Chat</label><br>
+        <input type="radio" id="query" name="prompt_type" value="query" onclick="updateTextInputVisibility()" >
+        <label for="query">Query</label><br>
+
+        <input type="radio" id="model" name="prompt_type" value="model" onclick="updateTextInputVisibility()" checked>
+        <label for="model">Model</label><br><br>
+        {% endif %}
+
+
+        <!-- MODEL text input box-->
+        <div id = "model_type_div">
+            <p>Model type:</p>
+            <grammarly-editor-plugin> <!-- <-Grammarly API -->
+                <textarea name="model_text" id="model_text" rows="2" cols="60" placeholder= "Enter model type" >{{prev_model_text}}</textarea>
+            </grammarly-editor-plugin>
+        </div>
+            
+        <!-- Prompt text input box-->
+        <div id = "text_input_div">
+            <p>Your prompt:</p>
+            <grammarly-editor-plugin> <!-- <-Grammarly API -->
+                <textarea name="text" id="text" rows="10" cols="60" placeholder= "Ask anything" >{{prev_text}}</textarea>
+            </grammarly-editor-plugin>
+        </div>
+        
+        <br>
+        <!-- submit button -->
+        <input type="submit" value="Submit">
+
+        <br>
+        <hr>
+        
+    </form>
+
+        <div class= "resultDiv">
+            {% if result %}
+            <br>
+            <p>Query:</p>
+            <div class="result" >{{ result }}</div>
+            {% endif %}
+            
+            <!-- display choices -->
+            <div class="displayTypeDiv">
+                <div class="displayTypeRadios">
+                    <form id="radio_form" action="/display_type" method="POST">
+                        <!--hidden inputs that hold the current data (that is displayed in the fronend) that where sent from the server in the previous post request-->
+                        <input type="hidden" name="prev_prompt" value="{{prev_text}}">
+                        <input type="hidden" name="prev_model_text" value="{{prev_model_text}}">
+                        <input type="hidden" name="prev_result" value="{{result}}">
+                        <input type="hidden" name="prev_database_query_result" value="{{database_query_result}}">
+                        <input type="hidden" name="prev_newVars" value="{{new_vars}}">
+                        <input type="hidden" name="prev_prompt_type" value="{{prompt_type}}">
+
+                        <!--radios-->
+                        {% if result_type == 'text_display_radio' %}
+                        <input type="radio" id="text_display_radio" name="display_type" value="text_display_radio" onchange="submitForm(value)" checked>
+                        <label for="chat">Text</label>
+                        <input type="radio" id="plot_display_radio" name="display_type" value="plot_display_radio" onchange="submitForm(value)" >
+                        <label for="chat">Plot</label><br>               
+                        {% elif result_type == 'plot_display_radio' %}
+                        <input type="radio" id="text_display_radio" name="display_type" value="text_display_radio" onchange="submitForm(value)" >
+                        <label for="chat">Text</label>
+                        <input type="radio" id="plot_display_radio" name="display_type" value="plot_display_radio" onchange="submitForm(value)" checked>
+                        <label for="chat">Plot</label><br>    
+                        {% endif %}                    
+                    </form>
+                </div>                
+            </div>
+            
+
+
+            <p>Query Result:</p>
+            <div class="database_query_result">   
+                                
+                
+
+                
+                {% if result_type == 'text_display_radio' %} 
+                <!--text query result-->
+                <div id="text-element">
+                    <h4>Returned query result:</h4>
+                    {% if database_query_result %}
+                        <!--if it's a dataframe-->
+                        {% if is_table(database_query_result) %} <!-- is_table() is a function registrated in the jinja enviroment, in the app.py file-->
+                            {{ database_query_result|safe }}
+
+                        <!--else it's probably a string-->                        
+                        {% else %}                            
+                            {% for line in database_query_result.split('\n') %}            
+                            <p>{{line}}</p>            
+                            {% endfor %}
+
+                        {% endif %}
+
+                    {% endif %}
+                </div>
+
+                <br>
+                <hr>
+
+                <!--variables-->
+                <div>
+                    <h4>Returned variables:</h4>
+                    {% if new_vars %}
+                        <p>{{new_vars }}</p>
+                    {% else %}
+                        <p>No variables returned.</p>
+                    {% endif %}
+                </div>      
+
+                {% elif result_type == 'plot_display_radio' %}
+                <!--plot query result-->
+                <div id="image-element" >
+                    <img id="plotImg" src="{{ url_for('static', filename='plot.png') }}" alt="Plot">
+                </div>
+                {% endif %} 
+            </div>
+        </div>
+        
+
+    <!--
+    <div class="container mt-5">
+        <h1>DataFrame</h1>
+        {{ df|safe }}
+    </div>
+    -->
+    
+    <!-- javascript-->
+    <script>
+        function submitForm(value) {
+
+            // send the form
+            document.getElementById("radio_form").submit();
+
+            /*
+            //change the display of query based on radio buttons
+            const imageElement = document.getElementById("image-element");
+            const textElement = document.getElementById("text-element");
+            
+            if (value === "plot_display_radio") {
+            imageElement.style.display = "block";
+            textElement.style.display = "none";
+            } else if (value === "text_display_radio") {
+            imageElement.style.display = "none";
+            textElement.style.display = "block";
+            }
+            */
+        }
+        // update the url of the browser on page load (this func is called in the <body onload=...)
+        function updateURL(newURL) {
+            //version 1
+            //window.history.pushState({}, null, newURL);
+
+            //version 2
+            //window.location.replace(newURL);
+
+            // version 3
+            window.location.href = newURL
+        }
+
+        // change text input boxes visibility based on prompt type radio buttons selection
+        function updateTextInputVisibility() {
+            const chat_radioButton = document.getElementById('chat');
+            const query_radioButton = document.getElementById('query');
+            const model_radioButton = document.getElementById('model');
+            
+            const model_text_inputBox_div = document.getElementById('model_type_div');
+            const text_inputBox_div = document.getElementById('text_input_div');
+
+            if (chat_radioButton.checked || query_radioButton.checked) {
+                model_text_inputBox_div.style.display = 'none';
+                text_inputBox_div.style.display = 'block';
+            } else if (model_radioButton.checked) {
+                model_text_inputBox_div.style.display = 'block';
+                text_inputBox_div.style.display = 'block';
+            }
+        }
+
+        // on page load, adjsut the text input boxes visiabillity based on prompt type radio buttons selection
+        window.onload = function() {
+            updateTextInputVisibility()
+        };
+        
+    </script>
+
+</body>
+</html>

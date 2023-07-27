@@ -1,0 +1,11 @@
+Column Name,Data Type
+day of the month,float64
+Start Time,timedelta64[ns]
+finish time,timedelta64[ns]
+place of work,object
+subject of work,object
+Lunch time,timedelta64[ns]
+hours a day,timedelta64[ns]
+Number of days of attendance ,int64
+normal hours,timedelta64[ns]
+Overtime,timedelta64[ns]

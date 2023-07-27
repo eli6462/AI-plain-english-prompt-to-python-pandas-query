@@ -1,0 +1,10 @@
+Column Name,Data Type
+gender,object
+race/ethnicity,object
+parental level of education,object
+lunch,object
+test preparation course,object
+math score,int64
+reading score,int64
+writing score,int64
+average_score,float64
